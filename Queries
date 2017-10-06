@@ -1,0 +1,118 @@
+n- total number of nodes
+
+with a as(select source_id from facebook_5037 union select destination_id from facebook_5037)select count(distinct source_id) as n from a;
+
+  n   
+------
+ 4039
+(1 row)
+
+m- total number of edges
+
+select count(source_id) as m from facebook_5037;
+
+   m   
+-------
+ 88234
+(1 row)
+
+Question 1.1
+
+with a as(select count(distinct source_id) as n,(select count(source_id) as m from facebook_5037)from(select source_id from facebook_5037 union select destination_id from facebook_5037) as foo1)select d*(b/c) as expected_num_of_traingles from(select (n*(n-1)*(n-2))/6 as d, m^3 as b, ((n*(n-1))/2)^3 as c from a)as foo;
+
+expected_num_of_traingles 
+---------------------------
+13900.3281973242
+(1 row)
+
+Question 1.2
+
+select count(*) as actual_num_of_traingles from facebook_5037 t1,facebook_5037 t2,facebook_5037 t3 where t1.destination_id=t2.source_id and t2.destination_id=t3.destination_id and t1.source_id=t3.source_id;
+
+ actual_num_of_triangles 
+-------------------------
+                 1612010
+(1 row)
+
+Question 2.1 
+
+Question 2.1.1 and 2.1.2
+
+select source_id,sum(degree) as degree from (select source_id,count(source_id) as degree from facebook_5037 group by(source_id) union all select destination_id,count(destination_id) as degree from facebook_5037 group by(destination_id) order by(source_id))as foo group by(source_id);
+
+\COPY (select source_id,sum(degree) as degree from (select source_id,count(source_id) as degree from facebook_5037 group by(source_id) union all select destination_id,count(destination_id) as degree from facebook_5037 group by(destination_id) order by(source_id))as foo group by(source_id)) TO '/rmt/csfiles/pgrads/mbva620/Ass3-2.csv'WITH CSV;
+
+Question 2.1.3
+
+with a as(select source_id,sum(degree) as degree from (select source_id,count(source_id) as degree from facebook_5037 group by(source_id) union all select destination_id,count(destination_id) as degree from facebook_5037 group by(destination_id) order by(source_id))as foo group by(source_id))select degree,round((count(source_id)/(with b as(select source_id from facebook_5037 union select destination_id from facebook_5037)select count(distinct source_id) as n from b)::numeric),3)from a group by(degree) order by(degree); 
+
+\COPY (with a as(select source_id,sum(degree) as degree from (select source_id,count(source_id) as degree from facebook_5037 group by(source_id) union all select destination_id,count(destination_id) as degree from facebook_5037 group by(destination_id) order by(source_id))as foo group by(source_id))select degree,round((count(source_id)/(with b as(select source_id from facebook_5037 union select destination_id from facebook_5037)select count(distinct source_id) as n from b)::numeric),3)from a group by(degree) order by(degree)) TO '/rmt/csfiles/pgrads/mbva620/Ass3.csv'WITH CSV;
+
+Question 2.2
+
+n for indegree
+
+select count(distinct destination_id) as n from twitter_5037;
+
+   n   
+-------
+ 81306
+(1 row)
+
+n for outdegree
+
+select count(distinct source_id) as n from twitter_5037;
+   n   
+-------
+ 70097
+(1 row)
+
+m
+
+select count(source_id) as m from twitter_5037;
+
+    m    
+---------
+ 2420766
+(1 row)
+
+Question 2.2.1 & 2.2.2
+indegree
+
+select destination_id,count(destination_id) as indegree from twitter_5037 group by(destination_id) order by(destination_id);
+
+\COPY (select destination_id,count(destination_id) as indegree from twitter_5037 group by(destination_id) order by(destination_id)) TO '/rmt/csfiles/pgrads/mbva620/Ass3-2_2_1.csv'WITH CSV;
+
+outdegree
+
+select source_id,count(source_id) as outdegree from twitter_5037 group by(source_id) order by(source_id);
+
+\COPY (select source_id,count(source_id) as outdegree from twitter_5037 group by(source_id) order by(source_id)) TO '/rmt/csfiles/pgrads/mbva620/Ass3-2_2_1_1.csv'WITH CSV;
+
+Question 2.2.3
+
+Indegree
+
+with a as(select destination_id,count(destination_id) as indegree from twitter_5037 group by(destination_id))select indegree,round((count(destination_id)/(select count(distinct destination_id) as n from twitter_5037)::numeric),3)from a group by(indegree) order by(indegree);
+
+\COPY (with a as(select destination_id,count(destination_id) as indegree from twitter_5037 group by(destination_id))select indegree,round((count(destination_id)/(select count(distinct destination_id) as n from twitter_5037)::numeric),3)from a group by(indegree) order by(indegree)) TO '/rmt/csfiles/pgrads/mbva620/Ass3-indegree.csv'WITH CSV;
+
+Outdegree
+
+with a as(select source_id,count(source_id) as outdegree from twitter_5037 group by(source_id))select outdegree,round((count(source_id)/(select count(distinct source_id) as n from twitter_5037)::numeric),3)from a group by(outdegree) order by(outdegree);
+
+\COPY (with a as(select source_id,count(source_id) as outdegree from twitter_5037 group by(source_id))select outdegree,round((count(source_id)/(select count(distinct source_id) as n from twitter_5037)::numeric),3)from a group by(outdegree) order by(outdegree)) TO '/rmt/csfiles/pgrads/mbva620/Ass3-outdegree.csv'WITH CSV;
+
+Q4
+
+n=3
+
+WITH T1 AS(SELECT source_id,destination_id FROM FACEBOOK_5037 UNION SELECT destination_id,source_id FROM FACEBOOK_5037), T2 AS(SELECT A.SOURCE_ID AS SRC_ID,B.DESTINATION_ID AS SND_DEG FROM T1 A,T1 B WHERE A.DESTINATION_ID = B.SOURCE_ID AND B.DESTINATION_ID <> A.SOURCE_ID EXCEPT SELECT * FROM T1),S2 AS(SELECT SRC_ID, SND_DEG FROM T2 WHERE SND_DEG IN (SELECT SND_DEG FROM T2 INTERSECT SELECT SOURCE_ID FROM T1)), S3 AS(SELECT SOURCE_ID,DESTINATION_ID FROM T1 WHERE SOURCE_ID IN (SELECT SND_DEG FROM T2 INTERSECT SELECT SOURCE_ID FROM T1))SELECT S2.SRC_ID,S3.DESTINATION_ID FROM S2 JOIN S3 ON S2.SND_DEG=S3.SOURCE_ID EXCEPT SELECT * FROM T1 EXCEPT SELECT * FROM T2;
+
+n=2
+with t1 as(select source_id,destination_id from facebook_5037 union select destination_id,source_id from facebook_5037)select a.source_id as src_id,b.destination_id as snd_deg from t1 a,t1 b where a.destination_id = b.source_id and b.destination_id <> a.source_id except select * from t1;
+
+n=1
+select source_id,destination_id from facebook_5037 union select destination_id,source_id from facebook_5037;
+
+
